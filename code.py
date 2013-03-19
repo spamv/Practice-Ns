@@ -58,7 +58,7 @@ def startfinishTwo(data):
 
 #COMPUTE RTT
 def rtt_f(startc,finishc,finishctwo):
-	for it in range(len(finishc)):
+	for it in range(len(finishctwo)):
 		if finishctwo[it]==0:
 			rtt.append(rtt[-1])
 		else:	
@@ -100,10 +100,13 @@ def rttestimated_kar_f(rtt):
 		i=i+1
 		rtte=((1-ALPHA)*float(itrtt))+(float(rtte)*ALPHA)
 		rttestimated_kar.append(rtte)
-		if finishc[(i-1)][10] in retransmsegments.keys():	
-			timeout_kar.append(float(rtte)*2*2)
+		if finishctwo[(i-1)]==0:
+			timeout_kar.append(timeout_kar[-1])
 		else:
-			timeout_kar.append(float(rtte)*2)
+			if finishctwo[(i-1)][10] in retransmsegments.keys():	
+				timeout_kar.append(float(rtte)*2*2)
+			else:
+				timeout_kar.append(float(rtte)*2)
 	
 #GET DROPED PACKETS --> NOT USED
 def dropedpackages():
@@ -219,27 +222,61 @@ def congestionWindow_ss():
 			overstepped_cop.pop(0)
 
 #PLOT TIME OUT ALGORITHMS
-def plottimeout(rtt,timeout,timeout_kar,timeout_jak):
-			#PLOT
-		rtt,=plt.plot(rtt,'r.')
+def plottimeout(rtt,timeout,timeout_kar,timeout_jak,rttestimated):
+		fig = plt.figure()
+		ax1 = fig.add_subplot(211)
+		rtt,=ax1.plot(rtt,'r.')
 		#rttestimated,=plt.plot(rttestimated)
-		if args.type=="or_to" or args.type=="all":timeout,=plt.plot(timeout)
-		if args.type=="kar" or args.type=="all":timeout_kar,=plt.plot(timeout_kar)
-		if args.type=="jak" or args.type=="all":timeout_jak,=plt.plot(timeout_jak)
+		if args.type=="or_to" or args.type=="all":
+			timeout,=ax1.plot(timeout)
+		if args.type=="kar" or args.type=="all":
+			timeout_kar,=ax1.plot(timeout_kar)
+		if args.type=="jak" or args.type=="all":
+			timeout_jak,=ax1.plot(timeout_jak)
 		plt.ylabel('Seconds')
 		plt.xlabel('Sequence number')
 		plt.legend([rtt,timeout,timeout_kar,timeout_jak], ["RTT","TIMEOUT ORI","TIMEOUT KAR","TIMEOUT JAK"])
+		
+		if args.fr!=None:
+			ax2 = fig.add_subplot(212)
+			rtt_rtt_file.pop(0)
+			rtt_rtt_file.pop(0)
+			to_rtt_file.pop(0)
+			to_rtt_file.pop(0)
+			ax2.plot(rtt_rtt_file,'r.')
+			ax2.plot(to_rtt_file)
+			plt.ylabel('Seconds')
+			plt.xlabel('Sequence number')
+			plt.legend([rtt,timeout,timeout_kar,timeout_jak], ["RTT","TIMEOUT ORI","TIMEOUT KAR","TIMEOUT JAK"])
+
 		plt.show()
 
 #PLOT CONGESTION WINDOW ALGORITHMS
-def plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time):
-		if args.type=="or_cw" or args.type=="all":cwnd_o,=plt.plot(cwnd_o_time,cwnd_o)
-		if args.type=="aimd" or args.type=="all":cwnd_aimd,=plt.plot(cwnd_aimd_time,cwnd_aimd)
-		if args.type=="ss" or args.type=="all":cwnd_ss,=plt.plot(cwnd_ss_time,cwnd_ss)
+def plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time,cw_rtt_file):
+		fig = plt.figure()
+		ax1 = fig.add_subplot(211)
+		if args.type=="or_cw" or args.type=="all":
+			m=max(cwnd_o)+5
+			cwnd_o,=ax1.plot(cwnd_o_time,cwnd_o)
+		if args.type=="aimd" or args.type=="all":
+			m=max(cwnd_aimd)+5
+			cwnd_aimd,=ax1.plot(cwnd_aimd_time,cwnd_aimd)
+		if args.type=="ss" or args.type=="all":
+			m=max(cwnd_ss)+5
+			cwnd_ss,=ax1.plot(cwnd_ss_time,cwnd_ss)
 		plt.ylabel('MMS')
-		plt.ylim([0,80])
+		plt.ylim([0,m])
 		plt.xlabel('Seconds')
 		plt.legend([cwnd_o,cwnd_aimd,cwnd_ss], ["ORIG","AI/MD","SLOW"])
+
+		if args.fr!=None:
+			ax2 = fig.add_subplot(212)
+			ax2.plot(t_rtt_file, cw_rtt_file)
+			plt.ylabel('MMS')
+			#plt.ylim([0,80])
+			plt.xlabel('Seconds')
+			plt.legend([cwnd_o,cwnd_aimd,cwnd_ss], ["ORIG","AI/MD","SLOW"])
+
 		plt.show()
 
 def print_to(listt):
@@ -250,11 +287,21 @@ def print_cw(cwnd,cwndt):
 	for i in range(len(cwnd)):
 		print cwndt[i],cwnd[i]
 
+def parseRttFiles(cw_rtt_file,t_rtt_file,rtt_rtt_file,to_rtt_file,filename):
+	v=open(filename,"r")
+	for line in v:
+		cw_rtt_file.append(line.split()[5])
+		t_rtt_file.append(line.split()[0])
+		rtt_rtt_file.append(line.split()[1])
+		to_rtt_file.append(line.split()[3])
+	v.close()
+
 
 if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-f", help="enter the file name")
+	parser.add_argument("-f", help="enter .tr file")
+	parser.add_argument("-fr", help="enter .rtt file (opcional)")
 	parser.add_argument("-plot", help="[cw] to plot congestion window, [to] to plot time out")
 	parser.add_argument("-type", help="[or_to] to plot original, [kar] to plot Karn/Patridge, [jak] to plot Jacobson/Karels, [or_cw] to plot original,[aimd] to plot AI/MD, [ss] to plot SlowStart, [all] to plot all")
 	parser.add_argument("-printt", help="[or_to] to print original, [kar] to print Karn/Patridge, [jak] to print Jacobson/Karels, [aimd] to print AI/MD, [ss] to print SlowStart")
@@ -263,6 +310,14 @@ if __name__ == "__main__":
 	if args.f==None:
 		print sys.argv[0], "[-h]  to enter help menu"
 		sys.exit()
+
+	#adfsdfasdfasdfasdfasdfasdfasdf
+	if args.fr!=None:
+		cw_rtt_file=[]
+		t_rtt_file=[]
+		rtt_rtt_file=[]
+		to_rtt_file=[]
+		parseRttFiles(cw_rtt_file,t_rtt_file,rtt_rtt_file,to_rtt_file,args.fr)
 
 	#PACKAGES PARSET BY SEGMENT
 	data={}
@@ -280,6 +335,21 @@ if __name__ == "__main__":
 	#RTT
 	rtt=[]
 	rtt_f(startc,finishc,finishctwo)
+
+	# i=0
+	# tim=[]
+	# nrtt=[]
+	# for m in range(len(finishctwo)):
+	# 	i=i+0.1
+	# 	if finishctwo[m]!=0:
+	# 		# tim.append(0)
+	# 		# nrtt.append(rtt[m])
+	# 	# 	print 0
+	# 	# else:		
+	# 	 	tim.append(finishctwo[m][1])
+	# 		nrtt.append(rtt[m])
+	# 		#print rtt[m],finishctwo[m][1]
+
 
 	#RTT ESTIMATED ORIGINAL
 	rttestimated=[]
@@ -312,7 +382,7 @@ if __name__ == "__main__":
 
 	#PLOT TIME OUT ALGORITHMS
 	if args.plot=='to':
-		plottimeout(rtt,timeout,timeout_kar,timeout_jak)
+		plottimeout(rtt,timeout,timeout_kar,timeout_jak,rttestimated)
 
 	#-------------------------CONGESTION WINDOW
 
@@ -338,9 +408,13 @@ if __name__ == "__main__":
 	congestionWindow_ss()
 	if args.printt=="ss":print_cw(cwnd_ss,cwnd_ss_time)
 
+
+
 	#PLOT CONGESTION WINDOW ALGORITHMS
 	if args.plot=='cw':
-		plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time)
+		plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time,cw_rtt_file)
+
+
 
 
 	# # ////////////////////////////
@@ -360,3 +434,11 @@ if __name__ == "__main__":
 	# print startctwo[671]
 	# print finishctwo[671]
 	# print rtt[671]
+
+
+
+# print len(tim)
+# print len(rtt)
+# print len(startctwo)
+
+	
