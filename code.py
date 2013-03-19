@@ -4,6 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import argparse
 
+ALPHA=(1/float(8))
+
 #RETURN INFORMATION PARSED BY SEQUENCE NUMBER
 def read(data,filename):
 	jamoti=[]
@@ -34,10 +36,33 @@ def startfinish(data):
 					finishc.append(l)
 					boolack=False
 
+#GET START AND FINISH CONVERSATION
+def startfinishTwo(data):
+	foundacktwo={}
+	for seq in data:
+		booltcp=True
+		boolack=True
+		for l in data[seq]:
+			if l[0]=='-' and booltcp==True:
+				m='seq'+l[10]+'ns'+l[3]+'nd'+l[2]+'tack'
+				foundacktwo[m]=l
+				startctwo.append(l)
+				finishctwo.append(0)
+				booltcp=False
+			if l[0]=='r' and boolack==True:
+				n='seq'+l[10]+'ns'+l[2]+'nd'+l[3]+'t'+l[4]
+				if n in foundacktwo.keys():
+					finishctwo.pop()
+					finishctwo.append(l)
+					boolack=False
+
 #COMPUTE RTT
-def rtt_f(startc,finishc):
+def rtt_f(startc,finishc,finishctwo):
 	for it in range(len(finishc)):
-			rtt.append(float(finishc[it][1])-float(startc[it][1]))
+		if finishctwo[it]==0:
+			rtt.append(rtt[-1])
+		else:	
+			rtt.append(float(finishctwo[it][1])-float(startctwo[it][1]))
 
 #COMPUTE RTT ESTIMATED AND TIMEOUT FROM ORIGINAL ALGORITHM
 def rttestimated_f(rtt):
@@ -45,7 +70,7 @@ def rttestimated_f(rtt):
 	rttestimated.append(0)
 	timeout.append(0)
 	for itrtt in rtt:
-		rtte=((1-(1/float(8)))*float(itrtt))+(float(rtte)*(1/float(8)))
+		rtte=((1-ALPHA)*float(itrtt))+(float(rtte)*ALPHA)
 		rttestimated.append(rtte)
 		timeout.append(float(rtte)*2)
 
@@ -73,7 +98,7 @@ def rttestimated_kar_f(rtt):
 	i=0
 	for itrtt in rtt:
 		i=i+1
-		rtte=((1-(1/float(8)))*float(itrtt))+(float(rtte)*(1/float(8)))
+		rtte=((1-ALPHA)*float(itrtt))+(float(rtte)*ALPHA)
 		rttestimated_kar.append(rtte)
 		if finishc[(i-1)][10] in retransmsegments.keys():	
 			timeout_kar.append(float(rtte)*2*2)
@@ -103,10 +128,15 @@ def retransmited_pack():
 					#print hh
 
 #GET OVERSTEPPED TIMEOUT PACKETS
+# def oversteppedTimeoutTwo():
+
+
+#GET OVERSTEPPED TIMEOUT PACKETS
 def oversteppedTimeout():
 	for it in range(len(rtt)):
 		if rtt[it]>timeout[it] and it!=0: 
-			m='seq'+finishc[it][10]+'ns'+finishc[it][2]+'nd'+finishc[it][3]+'t'+finishc[it][4]
+			#m='seq'+finishc[it][10]+'ns'+finishc[it][2]+'nd'+finishc[it][3]+'t'+finishc[it][4]
+			#overstepped.append(float(startc[it][1])+float(timeout[it]))
 			overstepped.append(float(startc[it][1])+float(timeout[it]))
 			#print m
 
@@ -243,9 +273,13 @@ if __name__ == "__main__":
 	finishc=[]
 	startfinish(data)
 
+	startctwo=[]
+	finishctwo=[]
+	startfinishTwo(data)
+
 	#RTT
 	rtt=[]
-	rtt_f(startc,finishc)
+	rtt_f(startc,finishc,finishctwo)
 
 	#RTT ESTIMATED ORIGINAL
 	rttestimated=[]
@@ -309,3 +343,20 @@ if __name__ == "__main__":
 		plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time)
 
 
+	# # ////////////////////////////
+	# for b in data:
+	# 	for y in data[b]:
+	# 		print y
+	# 	print 
+
+	# for y in data[624]:
+	#  		print y
+
+	#print overstepped
+	# startctwo=[]
+	# finishctwo=[]
+	# startfinishTwo(data)
+
+	# print startctwo[671]
+	# print finishctwo[671]
+	# print rtt[671]
