@@ -1,7 +1,6 @@
 import sys
 import os
 import math
-import matplotlib.pyplot as plt
 import argparse
 
 ALPHA=(1/float(8))
@@ -18,7 +17,7 @@ def read(data,filename):
 			jamoti=[]
 	f.close()
 
-#GET START AND FINISH CONVERSATION
+#GET START AND FINISH CONVERSATION => DEPRECATED
 def startfinish(data):
 	foundack={}
 	for seq in data:
@@ -94,7 +93,6 @@ def rttestimated_kar_f(rtt):
 	rtte = 0
 	rttestimated_kar.append(0)
 	timeout_kar.append(0)
-	dropeddict=dropedpackages()
 	i=0
 	for itrtt in rtt:
 		i=i+1
@@ -107,15 +105,6 @@ def rttestimated_kar_f(rtt):
 				timeout_kar.append(float(rtte)*2*2)
 			else:
 				timeout_kar.append(float(rtte)*2)
-	
-#GET DROPED PACKETS --> NOT USED
-def dropedpackages():
-	dropeddict={}
-	for la in data:
-		for nn in data[la]:
-			if nn[0]=='d' and nn[4]=='tcp':  
-				dropeddict[int(nn[10])]=1
-	return dropeddict
 
 #GET RETRANSMITED PACKAGES AND RETRANSMITED SEGMENTS
 def retransmited_pack():
@@ -129,10 +118,6 @@ def retransmited_pack():
 					retransm.append(hh)
 					retransmsegments[hh[10]]=1
 					#print hh
-
-#GET OVERSTEPPED TIMEOUT PACKETS
-# def oversteppedTimeoutTwo():
-
 
 #GET OVERSTEPPED TIMEOUT PACKETS
 def oversteppedTimeout():
@@ -246,7 +231,7 @@ def plottimeout(rtt,timeout,timeout_kar,timeout_jak,rttestimated):
 			ax2.plot(rtt_rtt_file,'r.')
 			ax2.plot(to_rtt_file)
 			plt.ylabel('Seconds')
-			plt.xlabel('Sequence number')
+			plt.xlabel('Seconds')
 			plt.legend([rtt,timeout,timeout_kar,timeout_jak], ["RTT","TIMEOUT ORI","TIMEOUT KAR","TIMEOUT JAK"])
 
 		plt.show()
@@ -279,14 +264,17 @@ def plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_
 
 		plt.show()
 
+#PRINT TIMEOUT FOR PRINTT ARGUMENT
 def print_to(listt):
 	for i in listt:
 		print i
 
+#PRINT CONGESTION WINDOW FOR PRINTT ARGUMENT
 def print_cw(cwnd,cwndt):
 	for i in range(len(cwnd)):
 		print cwndt[i],cwnd[i]
 
+#PARSE RTT FILES TO COMPARE
 def parseRttFiles(cw_rtt_file,t_rtt_file,rtt_rtt_file,to_rtt_file,filename):
 	v=open(filename,"r")
 	for line in v:
@@ -299,6 +287,7 @@ def parseRttFiles(cw_rtt_file,t_rtt_file,rtt_rtt_file,to_rtt_file,filename):
 
 if __name__ == "__main__":
 
+	#PARSER CONFIGURATION FOR ARGUMENTS USE
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", help="enter .tr file")
 	parser.add_argument("-fr", help="enter .rtt file (opcional)")
@@ -307,11 +296,12 @@ if __name__ == "__main__":
 	parser.add_argument("-printt", help="[or_to] to print original, [kar] to print Karn/Patridge, [jak] to print Jacobson/Karels, [aimd] to print AI/MD, [ss] to print SlowStart")
 	args = parser.parse_args()
 
+	#HELF IF NO .TR FILE INPUT
 	if args.f==None:
 		print sys.argv[0], "[-h]  to enter help menu"
 		sys.exit()
 
-	#adfsdfasdfasdfasdfasdfasdfasdf
+	#PARSE IF .RTT FILE INPUT
 	if args.fr!=None:
 		cw_rtt_file=[]
 		t_rtt_file=[]
@@ -319,15 +309,20 @@ if __name__ == "__main__":
 		to_rtt_file=[]
 		parseRttFiles(cw_rtt_file,t_rtt_file,rtt_rtt_file,to_rtt_file,args.fr)
 
+	#IMPORT MATPLOTLIB IF ITS REQUIRED
+	if args.plot!=None:
+		import matplotlib.pyplot as plt
+
 	#PACKAGES PARSET BY SEGMENT
 	data={}
 	read(data,args.f)
 
-	#
+	#START AND FINISH POINTS OF TRACE => DEPRECATED
 	startc=[]
 	finishc=[]
 	startfinish(data)
 
+	#START AND FINISH POINTS OF TRACE
 	startctwo=[]
 	finishctwo=[]
 	startfinishTwo(data)
@@ -336,26 +331,18 @@ if __name__ == "__main__":
 	rtt=[]
 	rtt_f(startc,finishc,finishctwo)
 
-	# i=0
-	# tim=[]
-	# nrtt=[]
-	# for m in range(len(finishctwo)):
-	# 	i=i+0.1
-	# 	if finishctwo[m]!=0:
-	# 		# tim.append(0)
-	# 		# nrtt.append(rtt[m])
-	# 	# 	print 0
-	# 	# else:		
-	# 	 	tim.append(finishctwo[m][1])
-	# 		nrtt.append(rtt[m])
-	# 		#print rtt[m],finishctwo[m][1]
-
-
 	#RTT ESTIMATED ORIGINAL
 	rttestimated=[]
 	timeout=[]
 	rttestimated_f(rtt)
+
+	#FUNCTIONS FOR PRINTT ARGUMENT
 	if args.printt=="or_to":print_to(timeout)
+	if args.printt=="jak":print_to(timeout_jak)
+	if args.printt=="kar":print_to(timeout_kar)
+	if args.printt=="or_cw":print_to(cwnd_o,cwnd_o_time)
+	if args.printt=="aimd":print_cw(cwnd_aimd,cwnd_aimd_time)
+	if args.printt=="ss":print_to(cwnd_ss,cwnd_ss_time)
 
 	#RETRANSMITTED PACKAGES
 	allpack={}
@@ -408,37 +395,8 @@ if __name__ == "__main__":
 	congestionWindow_ss()
 	if args.printt=="ss":print_cw(cwnd_ss,cwnd_ss_time)
 
-
-
 	#PLOT CONGESTION WINDOW ALGORITHMS
 	if args.plot=='cw':
 		plotcongestionw(cwnd_o,cwnd_o_time,cwnd_aimd,cwnd_aimd_time,cwnd_ss,cwnd_ss_time,cw_rtt_file)
-
-
-
-
-	# # ////////////////////////////
-	# for b in data:
-	# 	for y in data[b]:
-	# 		print y
-	# 	print 
-
-	# for y in data[624]:
-	#  		print y
-
-	#print overstepped
-	# startctwo=[]
-	# finishctwo=[]
-	# startfinishTwo(data)
-
-	# print startctwo[671]
-	# print finishctwo[671]
-	# print rtt[671]
-
-
-
-# print len(tim)
-# print len(rtt)
-# print len(startctwo)
 
 	
